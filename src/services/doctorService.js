@@ -16,7 +16,11 @@ let getTopDoctorHome = (limitInput) => {
                  },
                  include: [
                      {model: db.Allcode, as: 'positionData', attributes: ['valueEn', 'valueVi']},
-                     {model: db.Allcode, as: 'genderData', attributes: ['valueEn', 'valueVi']}
+                     {model: db.Allcode, as: 'genderData', attributes: ['valueEn', 'valueVi']},
+                     {
+                         model: db.Doctor_Infor, attributes: ['specialtyId'],
+                         include: [{ model: db.Specialty, as: 'specialtyData', attributes: ['id', 'name'] }]
+                     }
                  ],
                  raw: true,
                  nest: true
@@ -98,10 +102,17 @@ let saveDetailInforDoctor = (inputData) => {
                         },
                         raw: false
                     })
-                    if (doctorMarkdown) {
-                        doctorMarkdown.contentHTM = inputData.contentHTML;
+                    if (!doctorMarkdown) {
+                        await db.Markdown.create({
+                            contentHTML: inputData.contentHTML,
+                            contentMarkdown: inputData.contentMarkdown,
+                            description: inputData.description,
+                            doctorId: inputData.doctorId
+                        })
+                    } else {
+                        doctorMarkdown.contentHTML = inputData.contentHTML;
                         doctorMarkdown.contentMarkdown = inputData.contentMarkdown;
-                        doctorMarkdown.descriptio = inputData.description;
+                        doctorMarkdown.description = inputData.description;
                         doctorMarkdown.updateAt = new Date();
                         await doctorMarkdown.save();
                     }
@@ -287,6 +298,10 @@ let getScheduleByDate = (doctorId, date) => {
                     
                 })
                 if (!dataSchedule) dataSchedule = [];
+                dataSchedule = dataSchedule.map(item => {
+                    item.isFull = !!item.maxNumber && +item.currentNumber >= +item.maxNumber;
+                    return item;
+                });
                 resolve({
                     errCode: 0,
                     data: dataSchedule
@@ -390,10 +405,10 @@ let getProfileDoctorById =  (inputId) => {
     })    
 }
 
-let getListPatientForDoctor =  (doctorId, date) => {
+let getListPatientForDoctor =  (doctorId, date, statusId) => {
     return new Promise(async(resolve, reject) => {
         try {
-            if (!doctorId && !date) {
+            if (!doctorId || !date) {
                 resolve({
                     errCode: 1,
                     errMessage: 'Missing parameter '
@@ -401,22 +416,26 @@ let getListPatientForDoctor =  (doctorId, date) => {
                })
             } else {
                 let data = await db.Booking.findAll({
-                    where: {
-                        statusId: 'S2',
+                    where: statusId === 'ALL' ? {
+                        doctorId: doctorId,
+                        date: date
+                    } : {
+                        statusId: statusId || 'S2',
                         doctorId: doctorId,
                         date: date
                     },
                     include: [
                         {
                             model: db.User, as: 'patientData',
-                            attributes: ['email', 'firstName', 'address', 'gender'],
+                            attributes: ['email', 'firstName', 'address', 'gender', 'phonenumber'],
                             include: [
                                 { model: db.Allcode, as: 'genderData', attributes: ['valueEn', 'valueVi'] },
                             ]
                         },
                         { model: db.Allcode, as: 'timeTypeDataPatient', attributes: ['valueEn', 'valueVi'] },
-
+                        { model: db.Allcode, as: 'statusData', attributes: ['valueEn', 'valueVi'] },
                     ],
+                    order: [['timeType', 'ASC']],
                     raw: false,
                     nest: true
 
@@ -451,7 +470,8 @@ let sendRemedy =  (data) => {
                         patientId: data.patientId,
                         doctorId: data.doctorId,
                         statusId: 'S2',
-                        timeType: data.timeType
+                        timeType: data.timeType,
+                        ...(data.date ? { date: '' + data.date } : {})
                     },
                     raw: false,
 
@@ -464,7 +484,11 @@ let sendRemedy =  (data) => {
                     await appoinment.save();
                 }
                 // send email remedy
-                await EmailService.sendAttachment(data)
+                try {
+                    await EmailService.sendAttachment(data)
+                } catch (e) {
+                    console.log('Send remedy email failed: ', e.message);
+                }
                 resolve({
                     errCode: 0,
                     errMessage: 'Send remedy success!'

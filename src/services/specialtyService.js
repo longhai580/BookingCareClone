@@ -68,9 +68,10 @@ let getDetailSpecialtyById = (inputId, location) => {
                     where: {
                         id: inputId
                     },
-                    attributes:['descriptionHTML', 'descriptionMarkdown']
+                    attributes:['id', 'name', 'image', 'descriptionHTML', 'descriptionMarkdown']
                 })
                 if (data) {
+                    if (data.image) data.image = Buffer.from(data.image, 'base64').toString('binary');
                     let doctorSpecialty = [];
                     if (location === 'ALL') {
                         doctorSpecialty = await db.Doctor_Infor.findAll({
@@ -106,8 +107,48 @@ let getDetailSpecialtyById = (inputId, location) => {
         }
     })
 }
+
+let updateSpecialty = (data) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!data.id || !data.name || !data.descriptionHTML || !data.descriptionMarkdown) {
+                resolve({ errCode: 1, errMessage: 'Input data is empty!' })
+            } else {
+                let item = await db.Specialty.findOne({ where: { id: data.id }, raw: false });
+                if (!item) {
+                    resolve({ errCode: 2, errMessage: 'Specialty not found!' })
+                } else {
+                    item.name = data.name;
+                    item.descriptionHTML = data.descriptionHTML;
+                    item.descriptionMarkdown = data.descriptionMarkdown;
+                    if (data.imageBase64) item.image = data.imageBase64;
+                    await item.save();
+                    resolve({ errCode: 0, errMessage: 'Update success!' })
+                }
+            }
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
+let deleteSpecialty = (id) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            if (!id) {
+                resolve({ errCode: 1, errMessage: 'Missing parameter' })
+            } else {
+                await db.Specialty.destroy({ where: { id: id } });
+                resolve({ errCode: 0, errMessage: 'Delete success!' })
+            }
+        } catch (e) {
+            reject(e);
+        }
+    })
+}
 module.exports = {
     createSpecialty: createSpecialty,
     getAllSpecialty: getAllSpecialty,
-    getDetailSpecialtyById: getDetailSpecialtyById
+    getDetailSpecialtyById: getDetailSpecialtyById,
+    updateSpecialty: updateSpecialty,
+    deleteSpecialty: deleteSpecialty
 }

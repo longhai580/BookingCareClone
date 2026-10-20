@@ -2,7 +2,14 @@
 const dotenv = require('dotenv');
 dotenv.config({ path: 'src/.env' })
 import nodemailer from 'nodemailer';
+
+let isEmailConfigured = () => !!(process.env.EMAIL_APP && process.env.EMAIL_APP_PASSWORD);
+
 let sendEmail = async(dataSend) => {
+    if (!isEmailConfigured()) {
+      console.log('[EmailService] EMAIL_APP is not configured, skip sending. Verify link:', dataSend.redirectLink);
+      return false;
+    }
     let transporter = nodemailer.createTransport({
         host: "smtp.gmail.com",
         port: 587,
@@ -86,6 +93,10 @@ let getBodyHTMLEmailRemedy = (dataSend) => {
   return result;
 }
 let sendAttachment = async (dataSend) => {
+  if (!isEmailConfigured()) {
+    console.log('[EmailService] EMAIL_APP is not configured, skip sending remedy to', dataSend.email);
+    return false;
+  }
   let transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 587,
@@ -112,5 +123,6 @@ let info = await transporter.sendMail({
 }
 module.exports = {
   sendEmail: sendEmail,
-  sendAttachment: sendAttachment
+  sendAttachment: sendAttachment,
+  isEmailConfigured: isEmailConfigured
 }

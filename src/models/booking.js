@@ -16,6 +16,8 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'timeType', targetKey:
           'keyMap', as: 'timeTypeDataPatient'
       })
+      Booking.belongsTo(models.User, { foreignKey: 'doctorId', targetKey: 'id', as: 'doctorBookingData' })
+      Booking.belongsTo(models.Allcode, { foreignKey: 'statusId', targetKey: 'keyMap', as: 'statusData' })
 
     }
   };

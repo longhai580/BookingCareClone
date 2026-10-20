@@ -5,6 +5,8 @@ import doctorController from '../controllers/doctorController';
 import patientController from '../controllers/patientController';
 import specialtyController from '../controllers/specialtyController';
 import clinicController from '../controllers/clinicController';
+import handbookController from '../controllers/handbookController';
+import siteController from '../controllers/siteController';
 let router = express.Router();
 
 let initWebRoutes = (app) =>{
@@ -47,6 +49,22 @@ let initWebRoutes = (app) =>{
     router.post('/api/create-new-clinic', clinicController.createClinic);
     router.get('/api/get-clinic', clinicController.getAllClinic);
     router.get('/api/get-detail-clinic-by-id', clinicController.getDetailClinicyById);
+    router.put('/api/edit-clinic', clinicController.updateClinic);
+    router.delete('/api/delete-clinic', clinicController.deleteClinic);
+    router.put('/api/edit-specialty', specialtyController.updateSpecialty);
+    router.delete('/api/delete-specialty', specialtyController.deleteSpecialty);
+    // Handbook API
+    router.post('/api/create-new-handbook', handbookController.createHandbook);
+    router.get('/api/get-handbook', handbookController.getAllHandbook);
+    router.get('/api/get-detail-handbook-by-id', handbookController.getDetailHandbookById);
+    router.put('/api/edit-handbook', handbookController.updateHandbook);
+    router.delete('/api/delete-handbook', handbookController.deleteHandbook);
+    // Site API
+    router.get('/api/search', siteController.search);
+    router.get('/api/get-list-doctors', siteController.getListDoctors);
+    router.get('/api/statistics', siteController.getStatistics);
+    router.get('/api/patient-bookings', siteController.getBookingsByEmail);
+    router.post('/api/cancel-booking', siteController.cancelBooking);
 
     return app.use("/", router);
 } 
